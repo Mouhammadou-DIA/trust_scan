@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TRUSTSCAN V1.0 — Détecteur de Désinformation par IA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  /* ─── Reset & Variables ─────────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #050d12;
+    --bg2:       #080f15;
+    --panel:     #0a1520;
+    --border:    #0e2235;
+    --cyan:      #00e5ff;
+    --teal:      #00bcd4;
+    --green:     #00ff88;
+    --red:       #ff3366;
+    --orange:    #ff9500;
+    --yellow:    #ffe500;
+    --text:      #c8dde8;
+    --text-dim:  #4a7a90;
+    --glow-c:    0 0 20px rgba(0,229,255,0.4);
+    --glow-g:    0 0 20px rgba(0,255,136,0.4);
+    --glow-r:    0 0 20px rgba(255,51,102,0.4);
+    --font-mono: 'Share Tech Mono', monospace;
+    --font-ui:   'Rajdhani', sans-serif;
+    --font-hero: 'Orbitron', sans-serif;
+  }
+
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-ui);
+    font-size: 16px;
+    line-height: 1.6;
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  /* ─── Scanlines Overlay ─────────────────────────────────────────────────── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.15) 2px,
+      rgba(0,0,0,0.15) 4px
+    );
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.4;
+  }
+
+  /* ─── Grid BG ───────────────────────────────────────────────────────────── */
+  .grid-bg {
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  /* ─── Header / Hero ─────────────────────────────────────────────────────── */
+  header {
+    position: relative;
+    text-align: center;
+    padding: 60px 20px 40px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(0,229,255,0.04) 0%, transparent 100%);
+    overflow: hidden;
+  }
+
+  header::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 600px; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+    animation: scanLine 3s ease-in-out infinite;
+  }
+
+  .version-tag {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--cyan);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    animation: fadeInDown 0.8s ease both;
+  }
+
+  .logo {
+    font-family: var(--font-hero);
+    font-size: clamp(52px, 8vw, 96px);
+    font-weight: 900;
+    letter-spacing: -2px;
+    line-height: 1;
+    margin-bottom: 16px;
+    animation: fadeInDown 0.8s ease 0.1s both;
+  }
+
+  .logo span:first-child {
+    background: linear-gradient(135deg, #ffffff 0%, #00e5ff 60%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .logo span:last-child {
+    background: linear-gradient(135deg, #00e5ff 0%, #00ff88 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 20px rgba(0,255,136,0.5));
+  }
+
+  .tagline {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 6px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    animation: fadeInDown 0.8s ease 0.2s both;
+  }
+
+  .tagline span { color: var(--cyan); }
+
+  /* ─── Status Bar ────────────────────────────────────────────────────────── */
+  .status-bar {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    padding: 14px 20px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 2px;
+    flex-wrap: wrap;
+    animation: fadeIn 1s ease 0.4s both;
+  }
+
+  .status-item {
+    display: flex; align-items: center; gap: 8px;
+    color: var(--text-dim);
+  }
+
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+    animation: pulse 2s infinite;
+  }
+
+  .status-dot.warn { background: var(--orange); box-shadow: 0 0 6px var(--orange); }
+
+  /* ─── Main Layout ───────────────────────────────────────────────────────── */
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 20px 80px;
+  }
+
+  /* ─── Input Panel ───────────────────────────────────────────────────────── */
+  .input-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--cyan);
+    padding: 32px;
+    margin-bottom: 32px;
+    position: relative;
+    animation: fadeInUp 0.8s ease 0.3s both;
+  }
+
+  .input-panel::before {
+    content: 'ANALYSE URL';
+    position: absolute;
+    top: -1px; left: 24px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--bg);
+    background: var(--cyan);
+    padding: 2px 8px;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .input-wrapper {
+    flex: 1;
+    position: relative;
+  }
+
+  .input-prefix {
+    position: absolute;
+    left: 16px; top: 50%;
+    transform: translateY(-50%);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--cyan);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  #urlInput {
+    width: 100%;
+    padding: 16px 16px 16px 52px;
+    background: rgba(0,229,255,0.04);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--cyan);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    outline: none;
+    transition: all 0.3s;
+    letter-spacing: 0.5px;
+  }
+
+  #urlInput:focus {
+    border-color: var(--cyan);
+    background: rgba(0,229,255,0.07);
+    box-shadow: var(--glow-c), inset 0 0 20px rgba(0,229,255,0.05);
+  }
+
+  #urlInput::placeholder { color: var(--text-dim); }
+
+  .btn-scan {
+    padding: 16px 32px;
+    background: transparent;
+    border: 1px solid var(--cyan);
+    color: var(--cyan);
+    font-family: var(--font-hero);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s;
+    white-space: nowrap;
+    text-transform: uppercase;
+  }
+
+  .btn-scan::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--cyan);
+    transform: translateX(-101%);
+    transition: transform 0.3s ease;
+    z-index: -1;
+  }
+
+  .btn-scan:hover {
+    color: var(--bg);
+    box-shadow: var(--glow-c);
+  }
+
+  .btn-scan:hover::before { transform: translateX(0); }
+
+  .btn-scan:active { transform: scale(0.97); }
+
+  .btn-scan.loading {
+    pointer-events: none;
+    color: var(--text-dim);
+    border-color: var(--text-dim);
+  }
+
+  /* ─── Examples Row ──────────────────────────────────────────────────────── */
+  .examples {
+    margin-top: 16px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .examples-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .example-chip {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 4px 10px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .example-chip:hover {
+    border-color: var(--cyan);
+    color: var(--cyan);
+    background: rgba(0,229,255,0.05);
+  }
+
+  /* ─── Results Panel ─────────────────────────────────────────────────────── */
+  #results {
+    display: none;
+    animation: fadeInUp 0.5s ease both;
+  }
+
+  /* ─── Verdict Banner ────────────────────────────────────────────────────── */
+  .verdict {
+    padding: 28px 32px;
+    margin-bottom: 24px;
+    border: 1px solid;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .verdict::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.06;
+  }
+
+  .verdict.SAFE    { border-color: var(--green);  color: var(--green);  }
+  .verdict.SAFE::before { background: var(--green); }
+  .verdict.SUSPICIOUS { border-color: var(--yellow); color: var(--yellow); }
+  .verdict.SUSPICIOUS::before { background: var(--yellow); }
+  .verdict.DANGEROUS  { border-color: var(--orange); color: var(--orange); }
+  .verdict.DANGEROUS::before  { background: var(--orange); }
+  .verdict.BLOCKED    { border-color: var(--red);    color: var(--red);    }
+  .verdict.BLOCKED::before    { background: var(--red); }
+
+  .verdict-icon {
+    font-size: 40px;
+    line-height: 1;
+    filter: drop-shadow(0 0 10px currentColor);
+    flex-shrink: 0;
+  }
+
+  .verdict-content { flex: 1; }
+
+  .verdict-label {
+    font-family: var(--font-hero);
+    font-size: 24px;
+    font-weight: 900;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    text-shadow: 0 0 20px currentColor;
+  }
+
+  .verdict-url {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 4px;
+    word-break: break-all;
+  }
+
+  /* ─── Score Gauge ───────────────────────────────────────────────────────── */
+  .score-container {
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .score-ring {
+    width: 80px; height: 80px;
+    position: relative;
+  }
+
+  .score-ring svg {
+    transform: rotate(-90deg);
+    width: 80px; height: 80px;
+  }
+
+  .score-ring circle {
+    fill: none;
+    stroke-width: 6;
+    cx: 40; cy: 40; r: 34;
+  }
+
+  .score-ring .bg-circle { stroke: rgba(255,255,255,0.05); }
+  .score-ring .progress   {
+    stroke-dasharray: 214;
+    stroke-dashoffset: 214;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1);
+  }
+
+  .score-number {
+    position: absolute;
+    inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-hero);
+    font-size: 20px;
+    font-weight: 900;
+  }
+
+  /* ─── Grid de détails ───────────────────────────────────────────────────── */
+  .details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .detail-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 20px;
+    position: relative;
+    transition: border-color 0.3s;
+  }
+
+  .detail-card:hover { border-color: rgba(0,229,255,0.3); }
+
+  .detail-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .detail-card-title {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+
+  .badge {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 1px;
+    padding: 2px 8px;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+
+  .badge.OK         { background: rgba(0,255,136,0.15); color: var(--green);  border: 1px solid rgba(0,255,136,0.3);  }
+  .badge.WARN       { background: rgba(255,229,0,0.1);  color: var(--yellow); border: 1px solid rgba(255,229,0,0.3);  }
+  .badge.SUSPICIOUS { background: rgba(255,149,0,0.1);  color: var(--orange); border: 1px solid rgba(255,149,0,0.3);  }
+  .badge.DANGEROUS  { background: rgba(255,51,102,0.1); color: var(--red);    border: 1px solid rgba(255,51,102,0.3); }
+
+  .detail-value {
+    font-family: var(--font-mono);
+    font-size: 22px;
+    color: var(--cyan);
+    font-weight: 700;
+  }
+
+  .detail-sub {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  /* ─── Gauge Bar ─────────────────────────────────────────────────────────── */
+  .gauge-bar {
+    height: 4px;
+    background: rgba(255,255,255,0.07);
+    margin-top: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .gauge-bar-fill {
+    height: 100%;
+    transition: width 1s cubic-bezier(.4,0,.2,1);
+    position: relative;
+  }
+
+  .gauge-bar-fill::after {
+    content: '';
+    position: absolute;
+    right: 0; top: 0; bottom: 0;
+    width: 20px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4));
+    animation: shimmer 1.5s infinite;
+  }
+
+  /* ─── Flags Panel ───────────────────────────────────────────────────────── */
+  .flags-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+
+  .flags-title {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .flags-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .flag-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 8px 12px;
+    margin-bottom: 6px;
+    background: rgba(255,51,102,0.05);
+    border-left: 3px solid var(--red);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text);
+    animation: slideInLeft 0.3s ease both;
+  }
+
+  .flag-item .flag-icon { color: var(--red); flex-shrink: 0; }
+
+  .no-flags {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--green);
+    padding: 12px;
+    background: rgba(0,255,136,0.05);
+    border-left: 3px solid var(--green);
+  }
+
+  /* ─── Raw Data Toggle ───────────────────────────────────────────────────── */
+  .raw-toggle {
+    margin-bottom: 24px;
+  }
+
+  .raw-toggle summary {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    cursor: pointer;
+    list-style: none;
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 16px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    text-transform: uppercase;
+    transition: color 0.2s;
+  }
+
+  .raw-toggle summary:hover { color: var(--cyan); }
+  .raw-toggle summary::before { content: '▶'; font-size: 9px; transition: transform 0.2s; }
+  .raw-toggle[open] summary::before { transform: rotate(90deg); }
+
+  .raw-json {
+    background: #020810;
+    border: 1px solid var(--border);
+    border-top: none;
+    padding: 20px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: #7ec8e3;
+    overflow-x: auto;
+    line-height: 1.8;
+    white-space: pre;
+  }
+
+  /* ─── Footer ────────────────────────────────────────────────────────────── */
+  footer {
+    text-align: center;
+    padding: 32px 20px;
+    border-top: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+  }
+
+  footer span { color: var(--cyan); }
+
+  /* ─── Animations ────────────────────────────────────────────────────────── */
+  @keyframes fadeInDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to   { opacity: 1; transform: translateY(0);     }
+  }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0);    }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; } to { opacity: 1; }
+  }
+
+  @keyframes slideInLeft {
+    from { opacity: 0; transform: translateX(-10px); }
+    to   { opacity: 1; transform: translateX(0);     }
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; } 50% { opacity: 0.3; }
+  }
+
+  @keyframes scanLine {
+    0%, 100% { opacity: 0.3; } 50% { opacity: 1; }
+  }
+
+  @keyframes shimmer {
+    from { transform: translateX(-100%); }
+    to   { transform: translateX(100%); }
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; } 49% { opacity: 1; } 50% { opacity: 0; } 99% { opacity: 0; }
+  }
+
+  .cursor::after {
+    content: '█';
+    animation: blink 1s infinite;
+    font-size: 0.8em;
+  }
+
+  /* ─── Loader ────────────────────────────────────────────────────────────── */
+  .loader {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    padding: 40px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--cyan);
+    letter-spacing: 3px;
+  }
+
+  .loader-dots span {
+    display: inline-block;
+    width: 6px; height: 6px;
+    background: var(--cyan);
+    border-radius: 50%;
+    animation: bounce 1.4s infinite ease-in-out;
+  }
+
+  .loader-dots span:nth-child(1) { animation-delay: -0.32s; }
+  .loader-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+  @keyframes bounce {
+    0%, 80%, 100% { transform: scale(0); opacity: 0.3; }
+    40%           { transform: scale(1); opacity: 1;   }
+  }
+
+  /* ─── Responsive ────────────────────────────────────────────────────────── */
+  @media (max-width: 640px) {
+    .input-row   { flex-direction: column; }
+    .verdict     { flex-direction: column; text-align: center; }
+    .score-container { display: flex; align-items: center; gap: 16px; }
+    header       { padding: 40px 20px 30px; }
+    .status-bar  { gap: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<!-- ─── Header ─────────────────────────────────────────────────────────────── -->
+<header>
+  <div class="version-tag">[ TRUSTSCAN V1.0 ]</div>
+  <div class="logo">
+    <span>TRUST</span><span>SCAN</span>
+  </div>
+  <div class="tagline">// <span>DÉTECTEUR DE DÉSINFORMATION PAR IA</span> //</div>
+</header>
+
+<!-- ─── Status Bar ──────────────────────────────────────────────────────────── -->
+<div class="status-bar">
+  <div class="status-item">
+    <div class="status-dot"></div>
+    <span>MOTEUR IA : ACTIF</span>
+  </div>
+  <div class="status-item">
+    <div class="status-dot"></div>
+    <span>URL ANALYZER : PRÊT</span>
+  </div>
+  <div class="status-item">
+    <div class="status-dot warn"></div>
+    <span>NLP MODEL : LOCAL</span>
+  </div>
+  <div class="status-item">
+    <div class="status-dot"></div>
+    <span>15 SIGNAUX ACTIFS</span>
+  </div>
+</div>
+
+<!-- ─── Main ────────────────────────────────────────────────────────────────── -->
+<main>
+
+  <!-- Input Panel -->
+  <div class="input-panel">
+    <div class="input-row">
+      <div class="input-wrapper">
+        <span class="input-prefix">URL ›</span>
+        <input
+          type="text"
+          id="urlInput"
+          placeholder="https://example.com/login/verify?token=abc123"
+          autocomplete="off"
+          spellcheck="false"
+        >
+      </div>
+      <button class="btn-scan" id="scanBtn" onclick="runScan()">
+        ⟩ SCANNER
+      </button>
+    </div>
+
+    <div class="examples">
+      <span class="examples-label">Test rapide →</span>
+      <span class="example-chip" onclick="setExample('https://www.google.com')">google.com ✅</span>
+      <span class="example-chip" onclick="setExample('http://paypa1-secure.tk/login/verify?token=abc&password=xyz')">paypa1.tk ⚠️</span>
+      <span class="example-chip" onclick="setExample('https://192.168.1.1/admin/confirm-identity')">IP direct 🔴</span>
+      <span class="example-chip" onclick="setExample('https://orange-money-secure-verify-update.xyz/account?auth=12345&secret=abc')">orange-money fake 🚫</span>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="results"></div>
+
+</main>
+
+<!-- ─── Footer ──────────────────────────────────────────────────────────────── -->
+<footer>
+  FATI — FAKE-SITE ANALYSIS &amp; THREAT INTELLIGENCE &nbsp;|&nbsp;
+  <span>iSAFE HACKATHON SMSI 2026</span> &nbsp;|&nbsp;
+  Mouhammadou DIA
+</footer>
+
+<!-- ─── URL Analyzer Engine ─────────────────────────────────────────────────── -->
+<script>
+'use strict';
+
+// ════════════════════════════════════════════════════════
+//  URL ANALYZER — FATI / TRUSTSCAN
+//  15 signaux de détection — Score [0-100]
+// ════════════════════════════════════════════════════════
+
+const SUSPICIOUS_TLDS = new Set([
+  'xyz','tk','ml','cf','ga','gq','pw','top','click','link','download',
+  'loan','win','bid','accountant','stream','date','faith','review',
+  'cricket','party','trade','science','work','racing','men','webcam'
+]);
+
+const LEGITIMATE_BRANDS = [
+  'paypal','amazon','google','facebook','apple','microsoft','netflix',
+  'instagram','twitter','linkedin','orange','wave','mtn','airtel',
+  'freemobile','sfr','societegenerale','bnpparibas','creditagricole',
+  'impots','ameli','caf','gov','gouv'
+];
+
+const PHISHING_PATH_PATTERNS = [
+  /secure[-_]?login/i, /account[-_]?verify/i, /confirm[-_]?identity/i,
+  /update[-_]?info/i,  /suspended/i,           /unusual[-_]?activity/i,
+  /signin[-_]?check/i, /billing[-_]?update/i,  /security[-_]?alert/i
+];
+
+/* ── Utilitaires ─────────────────────────────────────── */
+
+function shannonEntropy(str) {
+  if (!str || str.length === 0) return 0;
+  const freq = {};
+  for (const c of str) freq[c] = (freq[c] || 0) + 1;
+  return -Object.values(freq).reduce((sum, count) => {
+    const p = count / str.length;
+    return sum + p * Math.log2(p);
+  }, 0);
+}
+
+function levenshtein(a, b) {
+  const m = a.length, n = b.length;
+  const dp = Array.from({length: m+1}, (_,i) =>
+    Array.from({length: n+1}, (_,j) => i===0?j:j===0?i:0)
+  );
+  for (let i=1;i<=m;i++)
+    for (let j=1;j<=n;j++)
+      dp[i][j] = a[i-1]===b[j-1] ? dp[i-1][j-1]
+        : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+  return dp[m][n];
+}
+
+function parseURL(raw) {
+  try {
+    const url       = new URL(raw.startsWith('http') ? raw : 'https://'+raw);
+    const hostParts = url.hostname.replace(/^www\./,'').split('.');
+    const tld       = hostParts.slice(-1)[0] || '';
+    const domain    = hostParts.slice(-2).join('.');
+    const subdomain = hostParts.length > 2 ? hostParts.slice(0,-2).join('.') : '';
+    return { raw, full:url.href, protocol:url.protocol, hostname:url.hostname,
+             domain, subdomain, tld, path:url.pathname, query:url.search,
+             port:url.port||null, params:Object.fromEntries(url.searchParams) };
+  } catch { return null; }
+}
+
+/* ── Analyseur principal ─────────────────────────────── */
+
+function analyzeURL(rawUrl) {
+  const flags = [], details = {};
+  let score = 0;
+
+  const parsed = parseURL(rawUrl);
+  if (!parsed) return { url:rawUrl, score:80, level:'DANGEROUS',
+    flags:['URL_PARSE_ERROR'], details:{}, timestamp:Date.now() };
+
+  // 1. Longueur URL
+  const urlLen = rawUrl.length;
+  details.urlLength = { value:urlLen, thresholds:{normal:54,warn:75,danger:100} };
+  if      (urlLen>100) { score+=15; flags.push(`URL_TOO_LONG (${urlLen} chars)`);    details.urlLength.status='DANGEROUS';  }
+  else if (urlLen>75)  { score+=8;  flags.push(`URL_LONG (${urlLen} chars)`);        details.urlLength.status='SUSPICIOUS'; }
+  else if (urlLen>54)  { score+=3;                                                    details.urlLength.status='WARN';       }
+  else                 {                                                               details.urlLength.status='OK';         }
+
+  // 2. Longueur domaine
+  const domainLen = parsed.domain.length;
+  details.domainLength = {value:domainLen};
+  if      (domainLen>30) { score+=10; flags.push(`DOMAIN_TOO_LONG (${domainLen})`); details.domainLength.status='DANGEROUS';  }
+  else if (domainLen>20) { score+=4;                                                  details.domainLength.status='SUSPICIOUS'; }
+  else                   {                                                             details.domainLength.status='OK';         }
+
+  // 3. HTTP
+  details.protocol={value:parsed.protocol};
+  if (parsed.protocol==='http:') { score+=12; flags.push('NO_HTTPS'); details.protocol.status='DANGEROUS'; }
+  else details.protocol.status='OK';
+
+  // 4. IP
+  const isIP = /^(\d{1,3}\.){3}\d{1,3}$/.test(parsed.hostname);
+  details.hasIP={value:isIP};
+  if (isIP) { score+=20; flags.push('IP_INSTEAD_OF_DOMAIN'); details.hasIP.status='DANGEROUS'; }
+  else details.hasIP.status='OK';
+
+  // 5. Points & Tirets
+  const dotCount    = (parsed.hostname.match(/\./g)||[]).length;
+  const hyphenCount = (parsed.hostname.match(/-/g) ||[]).length;
+  details.structure={dots:dotCount,hyphens:hyphenCount};
+  if (dotCount>4)    { score+=8;  flags.push(`EXCESSIVE_DOTS (${dotCount})`);    details.structure.dotsStatus='SUSPICIOUS';    }
+  if (hyphenCount>2) { score+=10; flags.push(`EXCESSIVE_HYPHENS (${hyphenCount})`); details.structure.hyphensStatus='SUSPICIOUS'; }
+
+  // 6. Caractères spéciaux
+  const hasAt          = rawUrl.includes('@');
+  const hasDoubleSlash = rawUrl.slice(8).includes('//');
+  const encRatio       = (rawUrl.match(/%[0-9A-Fa-f]{2}/g)||[]).length / rawUrl.length;
+  details.specialChars={hasAt,hasDoubleSlash,encodingRatio:+encRatio.toFixed(3)};
+  if (hasAt)          { score+=18; flags.push('AT_SIGN_IN_URL');              }
+  if (hasDoubleSlash) { score+=8;  flags.push('DOUBLE_SLASH_REDIRECT');       }
+  if (encRatio>0.1)   { score+=6;  flags.push(`HIGH_ENCODING (${(encRatio*100).toFixed(1)}%)`); }
+
+  // 7. TLD
+  details.tld={value:parsed.tld};
+  if (SUSPICIOUS_TLDS.has(parsed.tld.toLowerCase())) {
+    score+=12; flags.push(`SUSPICIOUS_TLD (.${parsed.tld})`); details.tld.status='SUSPICIOUS';
+  } else details.tld.status='OK';
+
+  // 8. Sous-domaines
+  const subDepth = parsed.subdomain ? parsed.subdomain.split('.').length : 0;
+  details.subdomains={depth:subDepth,value:parsed.subdomain};
+  if      (subDepth>3) { score+=10; flags.push(`DEEP_SUBDOMAIN (depth=${subDepth})`); details.subdomains.status='DANGEROUS';  }
+  else if (subDepth>2) { score+=5;                                                      details.subdomains.status='SUSPICIOUS'; }
+  else                 {                                                                 details.subdomains.status='OK';         }
+
+  // 9. Brand spoofing / Typosquatting
+  const domainNoTld  = parsed.domain.split('.')[0].toLowerCase();
+  const brandMatches = [];
+  for (const brand of LEGITIMATE_BRANDS) {
+    const dist = levenshtein(domainNoTld, brand);
+    if (dist>0 && dist<=2 && domainNoTld.length>=4)
+      brandMatches.push({brand,distance:dist,type:'typosquatting'});
+    if (parsed.subdomain.includes(brand) && !parsed.domain.includes(brand))
+      brandMatches.push({brand,distance:0,type:'subdomain_hijack'});
+  }
+  details.brandSpoofing={matches:brandMatches};
+  if (brandMatches.length>0) {
+    score += brandMatches.some(m=>m.distance===0) ? 25 : 15;
+    flags.push(`BRAND_SPOOFING: ${[...new Set(brandMatches.map(m=>m.brand))].join(', ')}`);
+    details.brandSpoofing.status='DANGEROUS';
+  }
+
+  // 10. Entropie
+  const entropy = shannonEntropy(domainNoTld);
+  details.entropy={value:+entropy.toFixed(3)};
+  if      (entropy>4.2) { score+=8; flags.push(`HIGH_ENTROPY (${entropy.toFixed(2)})`); details.entropy.status='SUSPICIOUS'; }
+  else if (entropy>3.8) { score+=3;                                                       details.entropy.status='WARN';       }
+  else                  {                                                                   details.entropy.status='OK';         }
+
+  // 11. Patterns phishing dans path
+  const fullPath  = parsed.path + parsed.query;
+  const pathFlags = PHISHING_PATH_PATTERNS.filter(p=>p.test(fullPath));
+  details.pathPatterns={matched:pathFlags.length};
+  if (pathFlags.length>0) {
+    score+=Math.min(pathFlags.length*8,20);
+    flags.push(`PHISHING_PATH_PATTERNS (${pathFlags.length} matched)`);
+    details.pathPatterns.status='DANGEROUS';
+  }
+
+  // 12. Params suspects
+  const dangerParams = ['token','auth','password','pass','pwd','secret','key','verify','confirm','otp'];
+  const foundParams  = Object.keys(parsed.params).filter(k=>dangerParams.some(dp=>k.toLowerCase().includes(dp)));
+  details.queryParams={suspicious:foundParams,total:Object.keys(parsed.params).length};
+  if (foundParams.length>0) { score+=6; flags.push(`SUSPICIOUS_PARAMS: ${foundParams.join(', ')}`); }
+
+  // 13. Port non standard
+  if (parsed.port && !['80','443','8080','8443'].includes(parsed.port)) {
+    score+=5; flags.push(`NON_STANDARD_PORT (${parsed.port})`);
+  }
+
+  // 14. Longueur path
+  const pathDepth = (parsed.path.match(/\//g)||[]).length - 1;
+  details.path={length:parsed.path.length,depth:pathDepth};
+  if (parsed.path.length>100) { score+=5; flags.push(`LONG_PATH (${parsed.path.length} chars)`); }
+  if (pathDepth>5)             { score+=4; flags.push(`DEEP_PATH (depth=${pathDepth})`);          }
+
+  // 15. IDN Homograph
+  const hasNonAscii = /[^\x00-\x7F]/.test(rawUrl);
+  details.homograph={detected:hasNonAscii};
+  if (hasNonAscii) { score+=20; flags.push('IDN_HOMOGRAPH_ATTACK'); details.homograph.status='DANGEROUS'; }
+
+  score = Math.min(Math.round(score), 100);
+  const level = score<=20?'SAFE':score<=45?'SUSPICIOUS':score<=70?'DANGEROUS':'BLOCKED';
+  return {url:rawUrl, parsed, score, level, flags, details, timestamp:Date.now()};
+}
+
+// ════════════════════════════════════════════════════════
+//  UI
+// ════════════════════════════════════════════════════════
+
+function setExample(url) {
+  document.getElementById('urlInput').value = url;
+  document.getElementById('urlInput').focus();
+}
+
+function runScan() {
+  const input = document.getElementById('urlInput').value.trim();
+  if (!input) { document.getElementById('urlInput').focus(); return; }
+
+  const resultsEl = document.getElementById('results');
+  const btn       = document.getElementById('scanBtn');
+
+  btn.classList.add('loading');
+  btn.textContent = '⟩ ANALYSE...';
+  resultsEl.style.display = 'block';
+  resultsEl.innerHTML = `
+    <div class="loader">
+      <div class="loader-dots"><span></span><span></span><span></span></div>
+      <span>ANALYSE EN COURS</span>
+    </div>`;
+
+  // Petit délai pour l'effet
+  setTimeout(() => {
+    const report = analyzeURL(input);
+    renderResults(report);
+    btn.classList.remove('loading');
+    btn.textContent = '⟩ SCANNER';
+  }, 600);
+}
+
+// Enter key
+document.getElementById('urlInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') runScan();
+});
+
+function levelColor(level) {
+  return {SAFE:'var(--green)',SUSPICIOUS:'var(--yellow)',DANGEROUS:'var(--orange)',BLOCKED:'var(--red)'}[level] || 'var(--cyan)';
+}
+
+function levelIcon(level) {
+  return {SAFE:'✔',SUSPICIOUS:'⚠',DANGEROUS:'◉',BLOCKED:'✖'}[level] || '?';
+}
+
+function statusColor(status) {
+  return {OK:'var(--green)',WARN:'var(--yellow)',SUSPICIOUS:'var(--orange)',DANGEROUS:'var(--red)'}[status] || 'var(--cyan)';
+}
+
+function renderResults(r) {
+  const resultsEl = document.getElementById('results');
+  const scoreCirc = Math.round((1 - r.score/100) * 214);
+  const color     = levelColor(r.level);
+
+  // ── Cards data
+  const cards = [
+    {
+      title: 'LONGUEUR URL',
+      value: r.details.urlLength?.value ?? '—',
+      unit: 'chars',
+      sub: `Seuils : 54 / 75 / 100`,
+      status: r.details.urlLength?.status ?? 'OK',
+      pct: Math.min((r.details.urlLength?.value ?? 0) / 150 * 100, 100),
+      color: statusColor(r.details.urlLength?.status)
+    },
+    {
+      title: 'PROTOCOLE',
+      value: r.details.protocol?.value?.replace(':','') ?? '—',
+      unit: '',
+      sub: r.details.protocol?.status === 'OK' ? 'Connexion chiffrée' : '⚠ Connexion non sécurisée',
+      status: r.details.protocol?.status ?? 'OK',
+      pct: r.details.protocol?.value === 'https:' ? 10 : 90,
+      color: statusColor(r.details.protocol?.status)
+    },
+    {
+      title: 'ENTROPIE DOMAINE',
+      value: r.details.entropy?.value?.toFixed(2) ?? '—',
+      unit: 'bits',
+      sub: 'Seuil suspect : > 4.2',
+      status: r.details.entropy?.status ?? 'OK',
+      pct: Math.min(((r.details.entropy?.value ?? 0) / 5) * 100, 100),
+      color: statusColor(r.details.entropy?.status)
+    },
+    {
+      title: 'TLD',
+      value: '.' + (r.parsed?.tld ?? '?'),
+      unit: '',
+      sub: r.details.tld?.status === 'OK' ? 'TLD de confiance' : '⚠ TLD suspect',
+      status: r.details.tld?.status ?? 'OK',
+      pct: r.details.tld?.status === 'SUSPICIOUS' ? 80 : 15,
+      color: statusColor(r.details.tld?.status)
+    },
+    {
+      title: 'SOUS-DOMAINES',
+      value: r.details.subdomains?.depth ?? 0,
+      unit: 'niveaux',
+      sub: r.details.subdomains?.value || 'Aucun sous-domaine',
+      status: r.details.subdomains?.status ?? 'OK',
+      pct: Math.min((r.details.subdomains?.depth ?? 0) / 5 * 100, 100),
+      color: statusColor(r.details.subdomains?.status)
+    },
+    {
+      title: 'BRAND SPOOFING',
+      value: r.details.brandSpoofing?.matches?.length ?? 0,
+      unit: 'marques',
+      sub: r.details.brandSpoofing?.matches?.length > 0
+        ? r.details.brandSpoofing.matches.map(m=>m.brand).join(', ')
+        : 'Aucune usurpation détectée',
+      status: r.details.brandSpoofing?.status ?? 'OK',
+      pct: Math.min((r.details.brandSpoofing?.matches?.length ?? 0) * 33, 100),
+      color: statusColor(r.details.brandSpoofing?.status)
+    }
+  ];
+
+  const cardsHTML = cards.map(c => `
+    <div class="detail-card">
+      <div class="detail-card-header">
+        <span class="detail-card-title">${c.title}</span>
+        <span class="badge ${c.status}">${c.status}</span>
+      </div>
+      <div class="detail-value" style="color:${c.color}">${c.value} <small style="font-size:12px;color:var(--text-dim)">${c.unit}</small></div>
+      <div class="detail-sub">${c.sub}</div>
+      <div class="gauge-bar">
+        <div class="gauge-bar-fill" style="width:${c.pct}%;background:${c.color}"></div>
+      </div>
+    </div>
+  `).join('');
+
+  // ── Flags
+  const flagsHTML = r.flags.length > 0
+    ? r.flags.map((f, i) => `
+        <div class="flag-item" style="animation-delay:${i*0.07}s">
+          <span class="flag-icon">▶</span>
+          <span>${f}</span>
+        </div>`).join('')
+    : `<div class="no-flags">✔ Aucun signal suspect détecté sur cette URL.</div>`;
+
+  resultsEl.innerHTML = `
+    <!-- Verdict -->
+    <div class="verdict ${r.level}">
+      <div class="verdict-icon">${levelIcon(r.level)}</div>
+      <div class="verdict-content">
+        <div class="verdict-label">${r.level}</div>
+        <div class="verdict-url">${r.url}</div>
+      </div>
+      <div class="score-container">
+        <div class="score-ring">
+          <svg viewBox="0 0 80 80">
+            <circle class="bg-circle" cx="40" cy="40" r="34"/>
+            <circle class="progress" id="scoreCircle"
+              cx="40" cy="40" r="34"
+              stroke="${color}"
+              stroke-dasharray="214"
+              stroke-dashoffset="214"/>
+          </svg>
+          <div class="score-number" style="color:${color}">${r.score}</div>
+        </div>
+        <div style="font-family:var(--font-mono);font-size:9px;letter-spacing:2px;color:var(--text-dim);margin-top:4px;text-align:center">SCORE</div>
+      </div>
+    </div>
+
+    <!-- Détail Cards -->
+    <div class="details-grid">${cardsHTML}</div>
+
+    <!-- Flags -->
+    <div class="flags-panel">
+      <div class="flags-title">
+        <span>⚑</span>
+        SIGNAUX DÉTECTÉS (${r.flags.length})
+      </div>
+      ${flagsHTML}
+    </div>
+
+    <!-- JSON brut -->
+    <details class="raw-toggle">
+      <summary>Données JSON brutes</summary>
+      <div class="raw-json">${JSON.stringify({
+        url: r.url, score: r.score, level: r.level,
+        flags: r.flags, details: r.details,
+        timestamp: new Date(r.timestamp).toISOString()
+      }, null, 2)}</div>
+    </details>
+  `;
+
+  // Animer le cercle
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      const circle = document.getElementById('scoreCircle');
+      if (circle) circle.style.strokeDashoffset = scoreCirc;
+    }, 100);
+  });
+
+  resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { 
+      background: #050d12; 
+      color: #c8dde8; 
+      font-family: 'Arial', sans-serif; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      height: 100vh; 
+      margin: 0;
+    }
+    .container { text-align: center; max-width: 600px; padding: 40px; }
+    h1 { color: #ff3366; font-size: 48px; margin-bottom: 20px; }
+    .icon { font-size: 80px; margin-bottom: 20px; }
+    p { font-size: 18px; line-height: 1.6; margin-bottom: 30px; }
+    button { 
+      padding: 12px 32px; 
+      background: #00e5ff; 
+      border: none; 
+      color: #050d12; 
+      font-size: 16px; 
+      font-weight: bold; 
+      cursor: pointer; 
+      border-radius: 4px;
+    }
+    button:hover { background: #00bcd4; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">⚠️</div>
+    <h1>SITE BLOQUÉ</h1>
+    <p>FATI a détecté que ce site présente un risque élevé de phishing ou de désinformation.</p>
+    <p>Il est fortement recommandé de ne pas continuer.</p>
+    <button onclick="history.back()">← Retour en sécurité</button>
+  </div>
+</body>
+</html>
