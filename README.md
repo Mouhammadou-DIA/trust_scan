@@ -21,28 +21,6 @@
 
 </div>
 
----
-
-## Vue d'ensemble
-
-**trust_scan** est une extension de navigateur et une API d'analyse qui détecte en temps réel les sites de phishing et les menaces web. Elle combine l'analyse structurelle des URLs, l'exploration des backlinks, l'audit des liens internes et un moteur NLP basé sur des modèles ONNX pour produire un score de risque de 0 à 100.
-
-```
-Utilisateur visite un site
-│
-▼
-┌───────────────────┐ ┌──────────────────────────────────────────┐
-│ Extension Chrome │────▶│ API trust_scan (NestJS) │
-│ / Firefox │ │ │
-└───────────────────┘ │ ┌─────────────┐ ┌──────────────────┐ │
-│ │ │ URL Parser │ │ Backlink Checker │ │
-│ │ └─────────────┘ └──────────────────┘ │
-▼ │ ┌──────────────┐ ┌──────────────────┐ │
-┌───────────────────┐ │ │Internal Links│ │ NLP / ONNX │ │
-│ Score de risque │◀────│ └──────────────┘ └──────────────────┘ │
-│ + Alerte visuelle│ └──────────────────────────────────────────┘
-└───────────────────┘
-```
 
 ---
 
