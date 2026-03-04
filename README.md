@@ -25,14 +25,14 @@
 
 ## Vue d'ensemble
 
-**FATI** est une extension de navigateur et une API d'analyse qui détecte en temps réel les sites de phishing et les menaces web. Elle combine l'analyse structurelle des URLs, l'exploration des backlinks, l'audit des liens internes et un moteur NLP basé sur des modèles ONNX pour produire un score de risque de 0 à 100.
+**trust_scan** est une extension de navigateur et une API d'analyse qui détecte en temps réel les sites de phishing et les menaces web. Elle combine l'analyse structurelle des URLs, l'exploration des backlinks, l'audit des liens internes et un moteur NLP basé sur des modèles ONNX pour produire un score de risque de 0 à 100.
 
 ```
 Utilisateur visite un site
 │
 ▼
 ┌───────────────────┐ ┌──────────────────────────────────────────┐
-│ Extension Chrome │────▶│ API FATI (NestJS) │
+│ Extension Chrome │────▶│ API trust_scan (NestJS) │
 │ / Firefox │ │ │
 └───────────────────┘ │ ┌─────────────┐ ┌──────────────────┐ │
 │ │ │ URL Parser │ │ Backlink Checker │ │
@@ -49,7 +49,7 @@ Utilisateur visite un site
 ## Architecture
 
 ```
-fati/
+trust_scan/
 ├── backlink-checker/ # Module d'analyse des backlinks
 │ ├── src/
 │ └── package.json
@@ -58,10 +58,10 @@ fati/
 │ ├── src/
 │ └── package.json
 │
-├── fati/ # Module principal — orchestration & scoring
+├── trust_scan/ # Module principal — orchestration & scoring
 │ ├── src/
-│ │ ├── fati.controller.ts
-│ │ ├── fati.service.ts
+│ │ ├── trust_scan.controller.ts
+│ │ ├── trust_scan.service.ts
 │ │ └── scoring/
 │ └── package.json
 │
@@ -72,7 +72,7 @@ fati/
 │ └── popup/
 │
 ├── trustscan.html # Interface web standalone (sans extension)
-└── FATI_train_export_ONNX.ipynb # Notebook d'entraînement & export ONNX
+└── trust_scan_train_export_ONNX.ipynb # Notebook d'entraînement & export ONNX
 ```
 
 ---
@@ -89,8 +89,8 @@ fati/
 
 ```bash
 # Cloner le dépôt
-git clone https://github.com/votre-org/fati.git
-cd fati/fati
+git clone https://github.com/votre-org/trust_scan.git
+cd trust_scan/trust_scan
 
 # Installer les dépendances
 npm install
@@ -128,11 +128,11 @@ npm run start:dev
 
 | Méthode | Endpoint | Description |
 |---------|----------|-------------|
-| `GET` | `/fati/analyze?url=<url>` | Analyse complète (score + détails) |
+| `GET` | `/trust_scan/analyze?url=<url>` | Analyse complète (score + détails) |
 | `GET` | `/backlink-checker?url=<url>` | Analyse des backlinks uniquement |
 | `GET` | `/internal-linking?url=<url>` | Analyse des liens internes uniquement |
 
-### Exemple de réponse — `/fati/analyze`
+### Exemple de réponse — `/trust_scan/analyze`
 
 ```json
 {
@@ -179,7 +179,7 @@ Score = (URL × 0.30) + (Backlinks × 0.20) + (Liens internes × 0.25) + (NLP ×
 
 ## Modèles ML (ONNX)
 
-Le notebook `FATI_train_export_ONNX.ipynb` contient :
+Le notebook `trust_scan_train_export_ONNX.ipynb` contient :
 
 - **Préparation des données** — dataset de sites phishing/légitimes labelisés
 - **Entraînement** — modèle de classification texte (TF-IDF + RandomForest / DistilBERT)
@@ -188,20 +188,20 @@ Le notebook `FATI_train_export_ONNX.ipynb` contient :
 
 ```bash
 # Lancer le notebook
-jupyter notebook FATI_train_export_ONNX.ipynb
+jupyter notebook trust_scan_train_export_ONNX.ipynb
 ```
 
 ---
 
 ## Variables d'environnement
 
-Créer un fichier `.env` à la racine de `fati/` :
+Créer un fichier `.env` à la racine de `trust_scan/` :
 
 ```env
 PORT=3001
 API_KEY_MAJESTIC=your_key_here # Optionnel — backlinks enrichis
 API_KEY_VIRUSTOTAL=your_key_here # Optionnel — réputation IP/domaine
-ONNX_MODEL_PATH=./models/fati.onnx
+ONNX_MODEL_PATH=./models/trust_scan.onnx
 ```
 
 ---
