@@ -89,7 +89,7 @@ trust_scan/
 
 ```bash
 # Cloner le dépôt
-git clone https://github.com/votre-org/trust_scan.git
+git clone https://github.com/Mouhammadou-DIA/trust_scan.git
 cd trust_scan/trust_scan
 
 # Installer les dépendances
